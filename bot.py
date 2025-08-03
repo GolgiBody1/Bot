@@ -1,7 +1,7 @@
 from telegram import Update
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 
-BOT_TOKEN = "7258037258:AAH9MbkHm46q0IipPBmVxW9Qz_MlIa0IszY"  # Tumhara token
+BOT_TOKEN = "7258037258:AAHV21cupMdlDHETCsR_2sWxWVLEaJIp72Y"  # Tumhara token
 
 # --- Commands ---
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
