@@ -13,7 +13,7 @@ from telegram.ext import (
 from datetime import datetime
 
 # ---------------- CONFIG ----------------
-BOT_TOKEN = os.getenv("BOT_TOKEN")  # Railway/Heroku me set karo
+BOT_TOKEN = os.getenv("7258037258:AAHV21cupMdlDHETCsR_2sWxWVLEaJIp72Y")  # Railway/Heroku me set karo
 DATA_FILE = "stats.json"  # persistent storage
 
 logging.basicConfig(
