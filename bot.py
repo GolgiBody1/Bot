@@ -1,35 +1,35 @@
 from pyrogram import Client, filters
 
-# --- Your credentials added here ---
 API_ID = 26014459
 API_HASH = "34b8791089c72367a5088f96d925f989"
-BOT_TOKEN = "8479001314:AAEtthyPfZiuu3YHdVJYI-T_uIediUNytoM"
-# ----------------------------------
+STRING_SESSION = "BQGM8vsAJVppG5SfjCvycz5l9o_UIsYpj3bvjYYF7qxZijHTM8_7mx8HlI2NVksjHXC3o31_QhFdq3VQGp510kRTE8CP0lYNSxQoM7A00-Wa56JNH1R2cNWTDuUGTYXqbif1B4z96_vPRJvPysL-R-6YMO7BDrI39Poyxv-IieogpMorJKUiQEgn1DjbeQTQNkpbJNwa2l-sbXumBfw5zwMCCZo4-iW_cNULOJLR_hw9-cRC64tMvegiJUUxmpweOThIJdz4ElEl7_qWV1HJSuTkPHyO_RaAIem-GwqQEi5RUlfpKXkCcOZYkPzZpMyrymLzcD0c-cGjPY7lqvFatJnNxF__VwAAAAGx20OoAA"
 
-app = Client("escrow_bot", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKEN)
+app = Client(
+    "userbot",
+    api_id=API_ID,
+    api_hash=API_HASH,
+    session_string=STRING_SESSION
+)
 
-@app.on_message(filters.command("start"))
-async def start(client, message):
-    await message.reply(
-        "🤖 Welcome to Escrow Bot!\n\n"
-        "Type /deal and I will create a private escrow group for you with a join link."
-    )
+@app.on_message(filters.private & filters.text)
+async def create_group(client, message):
+    try:
+        if message.text.lower() in ["deal", "/setup", "/create"]:
+            chat_title = f"Escrow Deal - {message.from_user.first_name}"
 
-@app.on_message(filters.command("deal"))
-async def create_deal(client, message):
-    chat_title = "Escrow Deal Group"
+            # Step 1: Create a private supergroup
+            group = await client.create_supergroup(chat_title, "Private escrow group auto-created")
 
-    # 1️⃣ Create a private supergroup
-    group = await client.create_supergroup(chat_title, "Auto-created private escrow group")
+            # Step 2: Add the user to the group
+            await client.add_chat_members(group.id, [message.from_user.id])
 
-    # 2️⃣ Generate invite link
-    invite = await client.create_chat_invite_link(group.id, name="Escrow Deal Link")
+            # Step 3: Generate and send the invite link
+            link = await client.export_chat_invite_link(group.id)
+            await message.reply_text(f"✅ New private escrow group created:\n🔗 {link}")
+        else:
+            await message.reply_text("Type 'deal' or '/setup' to create a new escrow group.")
+    except Exception as e:
+        await message.reply_text(f"❌ Error: {str(e)}")
 
-    # 3️⃣ Send link to user
-    await message.reply(
-        f"✅ A new escrow group has been created!\n\n"
-        f"🔗 Join here: {invite.invite_link}\n\n"
-        f"⚠️ Share this link with the other party to join."
-    )
-
+print("🚀 Userbot running...")
 app.run()
