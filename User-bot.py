@@ -52,6 +52,7 @@ async def process_deal(client, message, action_text, released_text):
             f"────────────────\n"
             f"👤 Buyer  : {buyer}\n"
             f"👤 Seller : {seller}\n"
+            f"💰 Amount : ₹{amount}\n"
             f"💸 {released_text}: ₹{release_amount}\n\n"
             f"🛡️ By - {escrower}"
         ),
