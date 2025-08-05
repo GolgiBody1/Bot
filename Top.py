@@ -1,12 +1,18 @@
 import re
 import random
 import json
-from telegram import Update
-from telegram.ext import Application, CommandHandler, ContextTypes
+import asyncio
+from pyrogram import Client, filters
+from pyrogram.enums import ChatMemberStatus
 
-BOT_TOKEN = "8350094964:AAEBEZh1imgSPFA6Oc3-wdDGNyKV4Ozc_yg"
+# ================== CONFIG ==================
+API_ID = 26014459  # अपना डालें
+API_HASH = "34b8791089c72367a5088f96d925f989"
+STRING_SESSION = "BQGM8vsAJVppG5SfjCvycz5l9o_UIsYpj3bvjYYF7qxZijHTM8_7mx8HlI2NVksjHXC3o31_QhFdq3VQGp510kRTE8CP0lYNSxQoM7A00-Wa56JNH"
 DATA_FILE = "data.json"
-LOG_CHANNEL_ID = -1002330347621  # Tumhara log channel ID
+LOG_CHANNEL_ID = -1002330347621  # लॉग चैनल ID
+
+app = Client("escrow_userbot", api_id=API_ID, api_hash=API_HASH, session_string=STRING_SESSION)
 
 # ================== LOAD / SAVE DATA ==================
 def load_data():
@@ -23,12 +29,10 @@ def save_data():
 data = load_data()
 
 # ================== HELPERS ==================
-async def is_admin(update: Update) -> bool:
-    chat = update.effective_chat
-    user = update.effective_user
+async def is_admin(chat_id: int, user_id: int) -> bool:
     try:
-        member = await chat.get_member(user.id)
-        return member.status in ["administrator", "creator"]
+        member = await app.get_chat_member(chat_id, user_id)
+        return member.status in [ChatMemberStatus.OWNER, ChatMemberStatus.ADMINISTRATOR]
     except:
         return False
 
@@ -56,38 +60,21 @@ def update_escrower_stats(group_id: str, escrower: str, amount: float, fee: floa
 
     save_data()
 
-# ================== /start Command ==================
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    msg = (
-        "✨ <b>Welcome to Demo Escrower Bot!</b> ✨\n\n"
-        "🤖 <b>I am here to manage escrow deals securely.</b>\n"
-        "💡 Use me to hold payments safely until trades are complete.\n\n"
-        "📋 <b>My Commands:</b>\n"
-        "• <b>/add</b> – Add a new deal (Reply to DEAL INFO form)\n"
-        "• <b>/complete</b> – Complete a deal (Auto release amount)\n"
-        "• <b>/stats</b> – Show this group’s stats\n"
-        "• <b>/gstats</b> – Show global stats (Admin only)\n\n"
-        "🛡️ <i>Secure your trades with confidence!</i>"
-    )
-    await update.message.reply_text(msg, parse_mode="HTML")
-
 # ================== /add Command ==================
-async def add_deal(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not await is_admin(update):
+@app.on_message(filters.command("add") & filters.group)
+async def add_deal(client, message):
+    if not await is_admin(message.chat.id, message.from_user.id):
         return
 
-    try:
-        await update.message.delete()
-    except:
-        pass
+    await message.delete()
 
-    if not update.message.reply_to_message:
-        await update.message.reply_text("❌ Please reply to the DEAL INFO form message!")
+    if not message.reply_to_message or not message.reply_to_message.text:
+        await message.reply("❌ Please reply to the DEAL INFO form message!")
         return
 
-    original_text = update.message.reply_to_message.text
-    chat_id = str(update.effective_chat.id)
-    reply_id = str(update.message.reply_to_message.message_id)
+    original_text = message.reply_to_message.text
+    chat_id = str(message.chat.id)
+    reply_id = str(message.reply_to_message.id)
     init_group(chat_id)
 
     buyer_match = re.search(r"BUYER\s*:\s*(@\w+)", original_text, re.IGNORECASE)
@@ -96,13 +83,12 @@ async def add_deal(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     buyer = buyer_match.group(1) if buyer_match else "Unknown"
     seller = seller_match.group(1) if seller_match else "Unknown"
-    
-    if not amount_match:
-        await update.message.reply_text("❌ Amount not found in the form!")
-        return
-    
-    amount = float(amount_match.group(1))
 
+    if not amount_match:
+        await message.reply("❌ Amount not found in the form!")
+        return
+
+    amount = float(amount_match.group(1))
     group_data = data["groups"][chat_id]
     if reply_id not in group_data["deals"]:
         trade_id = f"TID{random.randint(100000, 999999)}"
@@ -118,12 +104,7 @@ async def add_deal(update: Update, context: ContextTypes.DEFAULT_TYPE):
         release_amount = group_data["deals"][reply_id]["release_amount"]
         fee = round(amount - release_amount, 2)
 
-    escrower = (
-        f"@{update.effective_user.username}" 
-        if update.effective_user.username 
-        else update.effective_user.full_name
-    )
-
+    escrower = f"@{message.from_user.username}" if message.from_user.username else message.from_user.first_name
     update_escrower_stats(chat_id, escrower, amount, fee)
 
     msg = (
@@ -139,46 +120,40 @@ async def add_deal(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"🛡️ <b>Escrowed by</b> {escrower}"
     )
 
-    await update.effective_chat.send_message(
-        msg, 
-        reply_to_message_id=update.message.reply_to_message.message_id,
-        parse_mode="HTML"
-    )
+    await message.chat.send_message(msg, reply_to_message_id=message.reply_to_message.id, parse_mode="HTML")
     save_data()
 
 # ================== /complete Command ==================
-async def complete_deal(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not await is_admin(update):
+@app.on_message(filters.command("complete") & filters.group)
+async def complete_deal(client, message):
+    if not await is_admin(message.chat.id, message.from_user.id):
         return
 
-    try:
-        await update.message.delete()
-    except:
-        pass
+    await message.delete()
 
-    if not update.message.reply_to_message:
-        await update.message.reply_text("❌ Please reply to the DEAL INFO form message!")
+    if not message.reply_to_message or not message.reply_to_message.text:
+        await message.reply("❌ Please reply to the DEAL INFO form message!")
         return
 
-    chat_id = str(update.effective_chat.id)
-    reply_id = str(update.message.reply_to_message.message_id)
+    chat_id = str(message.chat.id)
+    reply_id = str(message.reply_to_message.id)
     init_group(chat_id)
 
     group_data = data["groups"][chat_id]
     deal_info = group_data["deals"].get(reply_id)
 
     if not deal_info:
-        await update.message.reply_text("❌ This deal was never added with /add!")
+        await message.reply("❌ This deal was never added with /add!")
         return
 
     if deal_info["completed"]:
-        await update.message.reply_text("❌ This deal is already completed!")
+        await message.reply("❌ This deal is already completed!")
         return
 
     deal_info["completed"] = True
     save_data()
 
-    original_text = update.message.reply_to_message.text
+    original_text = message.reply_to_message.text
     buyer_match = re.search(r"BUYER\s*:\s*(@\w+)", original_text, re.IGNORECASE)
     seller_match = re.search(r"SELLER\s*:\s*(@\w+)", original_text, re.IGNORECASE)
     buyer = buyer_match.group(1) if buyer_match else "Unknown"
@@ -186,13 +161,8 @@ async def complete_deal(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     trade_id = deal_info["trade_id"]
     release_amount = deal_info["release_amount"]
-    escrower = (
-        f"@{update.effective_user.username}" 
-        if update.effective_user.username 
-        else update.effective_user.full_name
-    )
+    escrower = f"@{message.from_user.username}" if message.from_user.username else message.from_user.first_name
 
-    # Group message
     msg = (
         "✅ <b>Deal Completed!</b>\n"
         "────────────────\n"
@@ -203,13 +173,8 @@ async def complete_deal(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "────────────────\n"
         f"🛡️ <b>Escrowed by</b> {escrower}"
     )
-    await update.effective_chat.send_message(
-        msg, 
-        reply_to_message_id=update.message.reply_to_message.message_id,
-        parse_mode="HTML"
-    )
+    await message.chat.send_message(msg, reply_to_message_id=message.reply_to_message.id, parse_mode="HTML")
 
-    # Log channel
     log_msg = (
         "📜 <b>Deal Completed (Log)</b>\n"
         "────────────────\n"
@@ -218,13 +183,14 @@ async def complete_deal(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"💸 <b>Released</b>: ₹{release_amount}\n"
         f"🆔 <b>Trade ID</b>: #{trade_id}\n"
         f"🛡️ <b>Escrowed by</b> {escrower}\n\n"
-        f"📌 <b>Group</b>: {update.effective_chat.title} ({update.effective_chat.id})"
+        f"📌 <b>Group</b>: {message.chat.title} ({message.chat.id})"
     )
-    await context.bot.send_message(LOG_CHANNEL_ID, log_msg, parse_mode="HTML")
+    await app.send_message(LOG_CHANNEL_ID, log_msg, parse_mode="HTML")
 
 # ================== /stats Command ==================
-async def group_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    chat_id = str(update.effective_chat.id)
+@app.on_message(filters.command("stats") & filters.group)
+async def group_stats(client, message):
+    chat_id = str(message.chat.id)
     init_group(chat_id)
     g = data["groups"][chat_id]
 
@@ -237,11 +203,12 @@ async def group_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"💰 Total Volume: ₹{g['total_volume']}\n"
         f"💸 Total Fee Collected: ₹{g['total_fee']}\n"
     )
-    await update.message.reply_text(msg)
+    await message.reply(msg)
 
 # ================== /gstats Command ==================
-async def global_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not await is_admin(update):
+@app.on_message(filters.command("gstats") & filters.group)
+async def global_stats(client, message):
+    if not await is_admin(message.chat.id, message.from_user.id):
         return
 
     g = data["global"]
@@ -254,19 +221,8 @@ async def global_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"💰 Total Volume: ₹{g['total_volume']}\n"
         f"💸 Total Fee Collected: ₹{g['total_fee']}\n"
     )
-    await update.message.reply_text(msg)
+    await message.reply(msg)
 
-# ================== Bot Start ==================
-def main():
-    app = Application.builder().token(BOT_TOKEN).build()
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CommandHandler("add", add_deal))
-    app.add_handler(CommandHandler("complete", complete_deal))
-    app.add_handler(CommandHandler("stats", group_stats))
-    app.add_handler(CommandHandler("gstats", global_stats))
-
-    print("Bot started... ✅")
-    app.run_polling()
-
-if __name__ == "__main__":
-    main()
+# ================== Start Userbot ==================
+print("✅ Userbot Started")
+app.run()
