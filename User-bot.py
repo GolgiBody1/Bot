@@ -9,104 +9,69 @@ STRING_SESSION = "BQGM8vsAJVppG5SfjCvycz5l9o_UIsYpj3bvjYYF7qxZijHTM8_7mx8HlI2NVk
 
 app = Client("escrow_userbot", api_id=API_ID, api_hash=API_HASH, session_string=STRING_SESSION)
 
-# ---------- Helper function to check admin ----------
+# ✅ Admin or Owner check
 async def is_admin(client, chat_id, user_id):
     try:
         member = await client.get_chat_member(chat_id, user_id)
-        return member.status in ["administrator", "creator"]
+        if member.status in ["administrator", "creator"]:
+            return True
+        if getattr(member, "can_manage_chat", False):
+            return True
     except ChatAdminRequired:
         return False
+    except:
+        pass
+    return False
 
+# ✅ Common function for both commands
+async def process_deal(client, message, action_text, released_text):
+    if not await is_admin(client, message.chat.id, message.from_user.id):
+        return await message.reply("❌ Only admins can use this command.", quote=True)
 
-# ---------------- /add Command ----------------
+    if not message.reply_to_message:
+        return await message.reply("❌ Please reply to a DEAL INFO message.", quote=True)
+
+    deal_text = message.reply_to_message.text
+
+    buyer = re.search(r"Buyer\s*:\s*(\S+)", deal_text, re.IGNORECASE)
+    buyer = buyer.group(1) if buyer else "N/A"
+
+    seller = re.search(r"Seller\s*:\s*(\S+)", deal_text, re.IGNORECASE)
+    seller = seller.group(1) if seller else "N/A"
+
+    amount = re.search(r"Deal Amount\s*:\s*(\d+)", deal_text, re.IGNORECASE)
+    amount = float(amount.group(1)) if amount else 0.0
+
+    release_amount = round(amount * 0.98, 2)
+    escrower = f"@{message.from_user.username}" if message.from_user.username else message.from_user.first_name
+
+    await client.send_message(
+        chat_id=message.chat.id,
+        text=(
+            f"{action_text}\n"
+            f"────────────────\n"
+            f"👤 Buyer  : {buyer}\n"
+            f"👤 Seller : {seller}\n"
+            f"💸 {released_text}: ₹{release_amount}\n\n"
+            f"🛡️ By - {escrower}"
+        ),
+        reply_to_message_id=message.reply_to_message.id
+    )
+
+    # ✅ Delete only the admin/owner's command message
+    try:
+        await client.delete_messages(chat_id=message.chat.id, message_ids=message.id)
+    except:
+        pass
+
+# ✅ Commands
 @app.on_message(filters.command(["add", "Add"], prefixes="/"))
 async def add_deal(client, message):
-    if not await is_admin(client, message.chat.id, message.from_user.id):
-        return await message.reply("❌ Only admins can use this command.", quote=True)
+    await process_deal(client, message, "✅ Amount Received!", "Release")
 
-    try:
-        if not message.reply_to_message:
-            return await message.reply("❌ Please reply to a DEAL INFO message.", quote=True)
-        
-        form_msg = message.reply_to_message
-        deal_text = form_msg.text
-
-        buyer = re.search(r"Buyer\s*:\s*(\S+)", deal_text, re.IGNORECASE)
-        buyer = buyer.group(1) if buyer else "N/A"
-
-        seller = re.search(r"Seller\s*:\s*(\S+)", deal_text, re.IGNORECASE)
-        seller = seller.group(1) if seller else "N/A"
-
-        amount = re.search(r"Deal Amount\s*:\s*(\d+)", deal_text, re.IGNORECASE)
-        amount = float(amount.group(1)) if amount else 0.0
-
-        release_amount = round(amount * 0.98, 2)
-        escrower = f"@{message.from_user.username}" if message.from_user.username else message.from_user.first_name
-
-        await client.send_message(
-            chat_id=message.chat.id,
-            text=(
-                f"✅ Amount Received!\n"
-                f"────────────────\n"
-                f"👤 Buyer  : {buyer}\n"
-                f"👤 Seller : {seller}\n"
-                f"💸 Release: ₹{release_amount}\n\n"
-                f"🛡️ Escrowed by - {escrower}"
-            ),
-            reply_to_message_id=form_msg.id
-        )
-
-        # ✅ Delete admin's command message
-        await message.delete()
-
-    except Exception as e:
-        await message.reply(f"⚠️ Error: {str(e)}")
-
-
-# ---------------- /complete Command ----------------
 @app.on_message(filters.command(["complete", "Complete"], prefixes="/"))
 async def complete_deal(client, message):
-    if not await is_admin(client, message.chat.id, message.from_user.id):
-        return await message.reply("❌ Only admins can use this command.", quote=True)
-
-    try:
-        if not message.reply_to_message:
-            return await message.reply("❌ Please reply to a DEAL INFO message.", quote=True)
-        
-        form_msg = message.reply_to_message
-        deal_text = form_msg.text
-
-        buyer = re.search(r"Buyer\s*:\s*(\S+)", deal_text, re.IGNORECASE)
-        buyer = buyer.group(1) if buyer else "N/A"
-
-        seller = re.search(r"Seller\s*:\s*(\S+)", deal_text, re.IGNORECASE)
-        seller = seller.group(1) if seller else "N/A"
-
-        amount = re.search(r"Deal Amount\s*:\s*(\d+)", deal_text, re.IGNORECASE)
-        amount = float(amount.group(1)) if amount else 0.0
-
-        release_amount = round(amount * 0.98, 2)
-        escrower = f"@{message.from_user.username}" if message.from_user.username else message.from_user.first_name
-
-        await client.send_message(
-            chat_id=message.chat.id,
-            text=(
-                f"✅ Payment Released!\n"
-                f"────────────────\n"
-                f"👤 Buyer  : {buyer}\n"
-                f"👤 Seller : {seller}\n"
-                f"💸 Released: ₹{release_amount}\n\n"
-                f"🛡️ Released by - {escrower}"
-            ),
-            reply_to_message_id=form_msg.id
-        )
-
-        # ✅ Delete admin's command message
-        await message.delete()
-
-    except Exception as e:
-        await message.reply(f"⚠️ Error: {str(e)}")
-
+    await process_deal(client, message, "✅ Payment Released!", "Released")
 
 print("🚀 Userbot Running...")
 app.run()
