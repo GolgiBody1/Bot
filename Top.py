@@ -6,7 +6,7 @@ API_ID = 26014459
 API_HASH = "34b8791089c72367a5088f96d925f989"
 STRING_SESSION = "BQGM8vsAJVppG5SfjCvycz5l9o_UIsYpj3bvjYYF7qxZijHTM8_7mx8HlI2NVksjHXC3o31_QhFdq3VQGp510kRTE8CP0lYNSxQoM7A00-Wa56JNH1R2cNWTDuUGTYXqbif1B4z96_vPRJvPysL-R-6YMO7BDrI39Poyxv-IieogpMorJKUiQEgn1DjbeQTQNkpbJNwa2l-sbXumBfw5zwMCCZo4-iW_cNULOJLR_hw9-cRC64tMvegiJUUxmpweOThIJdz4ElEl7_qWV1HJSuTkPHyO_RaAIem-GwqQEi5RUlfpKXkCcOZYkPzZpMyrymLzcD0c-cGjPY7lqvFatJnNxF__VwAAAAGx20OoAA"
 
-# Fixed Broadcast Message
+# ✅ Fixed Broadcast Message
 BROADCAST_MESSAGE = """
 🎩 Cheap Nft Gifts On sell 🎁
 
@@ -25,18 +25,18 @@ app = Client("autobot", api_id=API_ID, api_hash=API_HASH, session_string=STRING_
 async def ping_command(client, message):
     await message.reply("✅ Bot is Online!")
 
-# ✅ Auto Broadcast on start
+# ✅ Auto Broadcast on Start
 async def auto_broadcast():
     await app.start()
-    print("🚀 Userbot Started and Broadcasting Every 3 Minutes...")
+    print("🚀 Userbot Started... Broadcasting every 3 minutes!")
     while True:
         async for dialog in app.get_dialogs():
             if dialog.chat.type in ["group", "supergroup"]:
                 try:
                     await app.send_message(dialog.chat.id, BROADCAST_MESSAGE)
-                    await asyncio.sleep(1)
+                    await asyncio.sleep(1)  # Small delay between messages
                 except:
                     pass
-        await asyncio.sleep(180)  # 3 minutes
+        await asyncio.sleep(180)  # 3 minutes delay
 
 app.run(auto_broadcast())
