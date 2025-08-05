@@ -17,12 +17,15 @@ Dm - @Swieniy For Deal 🏖️
 Escrow Accepted ⚡
 """
 
+# Start the Pyrogram client
 app = Client("autobot", api_id=API_ID, api_hash=API_HASH, session_string=STRING_SESSION)
 
+# Ping command to check bot status
 @app.on_message(filters.me & filters.command("ping", prefixes="/"))
 async def ping_command(client, message):
     await message.reply("✅ Bot is Online!")
 
+# Auto broadcast loop
 async def auto_broadcast():
     await app.start()
     print("🚀 Userbot Started... Broadcasting every 3 minutes!")
@@ -35,11 +38,12 @@ async def auto_broadcast():
                     await app.send_message(dialog.chat.id, BROADCAST_MESSAGE)
                     print(f"✅ Sent to: {dialog.chat.title or dialog.chat.first_name}")
                     count += 1
-                    await asyncio.sleep(3)  # safe delay
+                    await asyncio.sleep(3)  # Safe delay
                 except Exception as e:
                     print(f"❌ Error sending to {dialog.chat.title or dialog.chat.first_name}: {e}")
 
-        print(f"🔄 Broadcast cycle complete. Messages sent: {count}")
-        await asyncio.sleep(180)  # 3 minutes delay for next cycle
+        print(f"🔄 Broadcast cycle complete. Total messages sent: {count}")
+        await asyncio.sleep(180)  # Repeat after 3 minutes
 
+# Run the bot
 app.run(auto_broadcast())
