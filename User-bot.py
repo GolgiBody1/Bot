@@ -1,5 +1,6 @@
 import re
 from pyrogram import Client, filters
+from pyrogram.errors import ChatAdminRequired
 
 # ================== CONFIG ==================
 API_ID = 26014459
@@ -8,10 +9,21 @@ STRING_SESSION = "BQGM8vsAJVppG5SfjCvycz5l9o_UIsYpj3bvjYYF7qxZijHTM8_7mx8HlI2NVk
 
 app = Client("escrow_userbot", api_id=API_ID, api_hash=API_HASH, session_string=STRING_SESSION)
 
+# ---------- Helper function to check admin ----------
+async def is_admin(client, chat_id, user_id):
+    try:
+        member = await client.get_chat_member(chat_id, user_id)
+        return member.status in ["administrator", "creator"]
+    except ChatAdminRequired:
+        return False
+
 
 # ---------------- /add Command ----------------
-@app.on_message(filters.command(["add", "Add"], prefixes="/") & filters.me)
+@app.on_message(filters.command(["add", "Add"], prefixes="/"))
 async def add_deal(client, message):
+    if not await is_admin(client, message.chat.id, message.from_user.id):
+        return await message.reply("❌ Only admins can use this command.", quote=True)
+
     try:
         if not message.reply_to_message:
             return await message.reply("❌ Please reply to a DEAL INFO message.", quote=True)
@@ -38,20 +50,25 @@ async def add_deal(client, message):
                 f"────────────────\n"
                 f"👤 Buyer  : {buyer}\n"
                 f"👤 Seller : {seller}\n"
-                f"💰 Amount : ₹{amount}\n"
                 f"💸 Release: ₹{release_amount}\n\n"
                 f"🛡️ Escrowed by - {escrower}"
             ),
             reply_to_message_id=form_msg.id
         )
 
+        # ✅ Delete admin's command message
+        await message.delete()
+
     except Exception as e:
         await message.reply(f"⚠️ Error: {str(e)}")
 
 
 # ---------------- /complete Command ----------------
-@app.on_message(filters.command(["complete", "Complete"], prefixes="/") & filters.me)
+@app.on_message(filters.command(["complete", "Complete"], prefixes="/"))
 async def complete_deal(client, message):
+    if not await is_admin(client, message.chat.id, message.from_user.id):
+        return await message.reply("❌ Only admins can use this command.", quote=True)
+
     try:
         if not message.reply_to_message:
             return await message.reply("❌ Please reply to a DEAL INFO message.", quote=True)
@@ -78,12 +95,14 @@ async def complete_deal(client, message):
                 f"────────────────\n"
                 f"👤 Buyer  : {buyer}\n"
                 f"👤 Seller : {seller}\n"
-                f"💰 Amount : ₹{amount}\n"
                 f"💸 Released: ₹{release_amount}\n\n"
                 f"🛡️ Released by - {escrower}"
             ),
             reply_to_message_id=form_msg.id
         )
+
+        # ✅ Delete admin's command message
+        await message.delete()
 
     except Exception as e:
         await message.reply(f"⚠️ Error: {str(e)}")
