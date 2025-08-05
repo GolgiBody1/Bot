@@ -145,7 +145,9 @@ async def add_deal(client, message):
 @app.on_message(filters.command("complete", ["/", "!"]))
 async def complete_deal(client, message):
     if not message.reply_to_message:
-        await message.reply_text("❌ Please reply to a DEAL INFO message!")
+        temp = await message.reply_text("❌ Please reply to a DEAL INFO message!")
+        await asyncio.sleep(3)
+        await temp.delete()
         return
 
     chat_id = str(message.chat.id)
@@ -156,10 +158,14 @@ async def complete_deal(client, message):
     deal_info = group_data["deals"].get(reply_id)
 
     if not deal_info:
-        await message.reply_text("❌ This deal was never added with /add!")
+        temp = await message.reply_text("❌ This deal was never added with /add!")
+        await asyncio.sleep(3)
+        await temp.delete()
         return
     if deal_info["completed"]:
-        await message.reply_text("❌ This deal is already completed!")
+        temp = await message.reply_text("❌ This deal is already completed!")
+        await asyncio.sleep(3)
+        await temp.delete()
         return
 
     deal_info["completed"] = True
@@ -188,11 +194,13 @@ async def complete_deal(client, message):
 
     await message.reply_to_message.reply_text(msg)
     await app.send_message(LOG_CHANNEL_ID, msg)
-    await asyncio.sleep(1)
+
+    # ✅ Sirf command delete karega
+    await asyncio.sleep(3)
     try:
-        await message.delete()
-    except:
-        pass
+        await client.delete_messages(chat_id, message.id)
+    except Exception as e:
+        print("Delete failed:", e)
 
 # ================== /stats ==================
 @app.on_message(filters.command("stats", ["/", "!"]))
