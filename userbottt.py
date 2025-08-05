@@ -1,6 +1,7 @@
-iimport re
+import re
 import random
 import json
+import asyncio
 from pyrogram import Client, filters
 
 # ================== CONFIG ==================
@@ -71,7 +72,11 @@ async def start_command(client, message):
         "• `/gstats` – Show global stats\n"
     )
     await message.reply_text(msg)
-    await message.delete()
+    await asyncio.sleep(1)
+    try:
+        await message.delete()
+    except:
+        pass
 
 # ================== /add ==================
 @app.on_message(filters.command("add", ["/", "!"]))
@@ -130,7 +135,11 @@ async def add_deal(client, message):
 
     await message.reply_to_message.reply_text(msg)
     save_data()
-    await message.delete()  # ✅ User command delete, bot reply stays
+    await asyncio.sleep(1)
+    try:
+        await message.delete()
+    except:
+        pass
 
 # ================== /complete ==================
 @app.on_message(filters.command("complete", ["/", "!"]))
@@ -179,7 +188,11 @@ async def complete_deal(client, message):
 
     await message.reply_to_message.reply_text(msg)
     await app.send_message(LOG_CHANNEL_ID, msg)
-    await message.delete()  # ✅ User command delete, bot reply stays
+    await asyncio.sleep(1)
+    try:
+        await message.delete()
+    except:
+        pass
 
 # ================== /stats ==================
 @app.on_message(filters.command("stats", ["/", "!"]))
@@ -197,7 +210,11 @@ async def group_stats(client, message):
         f"💸 Total Fee Collected: ₹{g['total_fee']}\n"
     )
     await message.reply_text(msg)
-    await message.delete()
+    await asyncio.sleep(1)
+    try:
+        await message.delete()
+    except:
+        pass
 
 # ================== /gstats ==================
 @app.on_message(filters.command("gstats", ["/", "!"]))
@@ -213,7 +230,11 @@ async def global_stats(client, message):
         f"💸 Total Fee Collected: ₹{g['total_fee']}\n"
     )
     await message.reply_text(msg)
-    await message.delete()
+    await asyncio.sleep(1)
+    try:
+        await message.delete()
+    except:
+        pass
 
 # ================== RUN USERBOT ==================
 print("✅ Userbot (String Session) Started...")
